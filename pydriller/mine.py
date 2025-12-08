@@ -5,8 +5,8 @@ import re
 import os
 
 urls = [
-    "https://github.com/apache/lucene",
     "https://github.com/apache/commons-io",
+    "https://github.com/apache/lucene",
     "https://github.com/apache/commons-lang",
     "https://github.com/apache/kafka",
     "https://github.com/apache/hadoop",
@@ -19,14 +19,15 @@ name_pattern = r"/([^/]+)$"
 MANUAL_REMINE = False #Set to true if you want to remine a repo
 
 
-def get_default_branch(repo_path):
-    repo = Repository(repo_path)
+def get_default_branch(repo_url):
+    repo = Repository(repo_url)
     for commit in repo.traverse_commits():
         if 'main' in commit.branches:
             return 'main'
         elif 'master' in commit.branches:
             return 'master'
-        print(f"No master or main in {repo_path}")
+        
+        print(f"No master or main detected in {repo_url}")
         assert False
 
 def save_to_json(repo_url):
@@ -36,6 +37,8 @@ def save_to_json(repo_url):
         assert False
 
     output_file = f"data/{matches[0]}.json"
+    if os.path.basename(os.getcwd()) == "pydriller":
+        output_file = "../" +output_file 
 
     if not MANUAL_REMINE and os.path.exists(output_file):
         return
