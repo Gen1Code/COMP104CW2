@@ -62,7 +62,7 @@ def save_to_json(repo_url):
             "timestamp": timestamp,
             "author": commit.author.name,
             'is_merge': commit.merge,
-            "branches_set": commit.branches,
+            "branches_set": list(commit.branches),
             "commit_msg": commit.msg[:100] #Limit to only first 100 characters
         } 
     
@@ -71,7 +71,7 @@ def save_to_json(repo_url):
             if modified_file.filename.endswith(".java"):
                 file_data = {
                     "filename": modified_file.filename,
-                    "modification_type": modified_file.change_type, #https://pydriller.readthedocs.io/en/latest/reference.html#pydriller.domain.commit.ModificationType
+                    "modification_type": modified_file.change_type.value, #https://pydriller.readthedocs.io/en/latest/reference.html#pydriller.domain.commit.ModificationType
                     "new_path": modified_file.new_path,
                     "old_path": modified_file.old_path,
                 }
