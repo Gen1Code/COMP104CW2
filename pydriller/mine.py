@@ -81,7 +81,7 @@ def save_to_json(repo_url):
 
         commit_data["modified_files"] = modified_files
 
-        data[timestamp] = commit_data
+        data[f"{timestamp},{commit.author.name}"] = commit_data
 
         i+=1
 
