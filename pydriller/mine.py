@@ -6,13 +6,13 @@ import os
 
 urls = [
     "https://github.com/apache/commons-io",
-    "https://github.com/apache/lucene",
     "https://github.com/apache/commons-lang",
     "https://github.com/apache/kafka",
     "https://github.com/apache/hadoop",
     "https://github.com/apache/cassandra",
     "https://github.com/apache/tomcat",
-    "https://github.com/apache/maven"
+    "https://github.com/apache/maven",
+    "https://github.com/apache/lucene"
 ]
 
 name_pattern = r"/([^/]+)$"
@@ -54,12 +54,7 @@ def save_to_json(repo_url):
 
     data = {}
     i = 1
-    for commit in Repository(repo_url, 
-            only_modifications_with_file_types=['.java'], 
-            only_in_branch=main_branch,
-            num_workers=8
-        ).traverse_commits():
-
+    for commit in Repository(repo_url, num_workers=8).traverse_commits():
         if i%1000 == 0:
             print(f"Currently at {i} commits for {matches[0]}")
 
@@ -72,7 +67,10 @@ def save_to_json(repo_url):
             "commit_msg": commit.msg[:100], #Limit to only first 100 characters
             "num_insertions": commit.insertions,
             "num_deletions": commit.deletions,
-            "num_lines_changed": commit.lines
+            "num_lines_changed": commit.lines,
+            "num_files_changed": commit.files,
+            "parents": commit.parents,  #TBD: probs if a merge commit then this will be a 2 length list with the hashes of the prev commit in that branch
+            "branches": list(commit.branches)
         } 
     
         modified_files = []
