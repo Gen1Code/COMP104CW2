@@ -16,7 +16,7 @@ urls = [
 ]
 
 name_pattern = r"/([^/]+)$"
-MANUAL_REMINE = False #Set to true if you want to remine a repo
+MANUAL_REMINE = True #Set to true if you want to remine a repo
 
 
 def get_default_branch(repo_url):
@@ -62,8 +62,10 @@ def save_to_json(repo_url):
             "timestamp": timestamp,
             "author": commit.author.name,
             'is_merge': commit.merge,
-            "branches_set": list(commit.branches),
-            "commit_msg": commit.msg[:100] #Limit to only first 100 characters
+            "commit_msg": commit.msg[:100], #Limit to only first 100 characters
+            "num_insertions": commit.insertions,
+            "num_deletions": commit.deletions,
+            "num_lines_changed": commit.lines
         } 
     
         modified_files = []
