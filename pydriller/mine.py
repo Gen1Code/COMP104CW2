@@ -46,6 +46,12 @@ def save_to_json(repo_url):
     main_branch = get_default_branch(repo_url)
     print(f"Main branch for {matches[0]} is {main_branch}")
 
+    repo_data = {
+        "name": matches[0],
+        "url": repo_url,
+        "main_branch": main_branch
+    }
+
     data = {}
     i = 1
     for commit in Repository(repo_url, 
@@ -59,6 +65,7 @@ def save_to_json(repo_url):
 
         timestamp = commit.author_date.isoformat()
         commit_data = {
+            "hash": commit.hash,
             "timestamp": timestamp,
             "author": commit.author.name,
             'is_merge': commit.merge,
@@ -76,17 +83,22 @@ def save_to_json(repo_url):
                     "modification_type": modified_file.change_type.value, #https://pydriller.readthedocs.io/en/latest/reference.html#pydriller.domain.commit.ModificationType
                     "new_path": modified_file.new_path,
                     "old_path": modified_file.old_path,
+                    "num_lines_added": modified_file.added_lines,
+                    "num_lines_deleted": modified_file.deleted_lines
                 }
                 modified_files.append(file_data)
 
         commit_data["modified_files"] = modified_files
 
-        data[f"{timestamp},{commit.author.name}"] = commit_data
+        data[commit.hash] = commit_data
 
         i+=1
 
+    repo_data["num_commits"] = i-1
+    repo_data["commits"] = data
+
     with open(output_file, 'w', encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False)
+        json.dump(repo_data, f, ensure_ascii=False)
     print(f"saved {repo_url} to {output_file}")
 
 
