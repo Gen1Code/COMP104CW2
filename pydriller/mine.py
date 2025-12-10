@@ -26,6 +26,8 @@ def get_default_branch(repo_url):
             return 'main'
         elif 'master' in commit.branches:
             return 'master'
+        elif 'trunk' in commit.branches:
+            return 'trunk'
         
         print(f"No master or main detected in {repo_url}")
         assert False
