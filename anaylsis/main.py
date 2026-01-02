@@ -3,7 +3,7 @@ import json
 import os
 import matplotlib.pyplot as plt
 
-from utils import to_commit_df, classify_commits
+from utils import to_commit_df, classify_commits, create_commit_graph, analyze_commit_graph
 pd.set_option('display.max_columns', None)
 
 data = []
@@ -16,19 +16,28 @@ for file in os.listdir("data"):
     data.append(df)
     print(file+" total commits loaded:", len(df))
 
-#Classify commits in each repo
+#Anaylse commit graphs and classify commits
 for i, df in enumerate(data):
-    test_counts, code_counts, unknown_java_counts, commit_types = classify_commits(df)
+    repo_name = df.iloc[0]['repo']
 
-    df["test_file_mods"] = test_counts
-    df["code_file_mods"] = code_counts
-    df["unknown_java_file_mods"] = unknown_java_counts
-    df["commit_type"] = commit_types
+    G = create_commit_graph(df)
+    stats = analyze_commit_graph(G)
+    
+    print(f"Commit Analysis for {repo_name}")
+    print(f"Total commits: {stats['num_commits']}")
+    print(f"Merge commits: {stats['num_merge_commits']}")
+
+    stats = classify_commits(df)
+    df["test_file_mods"] = stats["test_counts"]
+    df["code_file_mods"] = stats["code_counts"]
+    df["unknown_java_file_mods"] = stats["unknown_java_counts"]
+    df["commit_type"] = stats["commit_types"]
 
     df_main = df[(df["on_main"]) & (~df["is_merge"]) & (df["commit_type"] != "none")]
 
-    print(f"Repo {df.iloc[0]['repo']} - commits on main branch:", len(df_main))
+    print(f"Non merge commits on main branch:", len(df_main))
     print(df_main["commit_type"].value_counts().to_string())
+    print()
 
 
 #Plot bar charts of commit types for each repo
@@ -77,6 +86,6 @@ for i, df in enumerate(data):
     plt.close()
 
     print(f"{repo_name} commit size stats:")
-    print("median lines changed:", float(sizes.median()) if len(sizes) else None)
-    print("95th percentile:", float(sizes.quantile(0.95)) if len(sizes) else None)
-
+    print("median lines changed:", round(float(sizes.median()),3) if len(sizes) else None)
+    print("95th percentile:", round(float(sizes.quantile(0.95)),3) if len(sizes) else None)
+    print()
