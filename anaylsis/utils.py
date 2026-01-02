@@ -2,7 +2,9 @@ import re
 import pandas as pd
 
 def is_test_file(filename):
-    return bool(re.search(r'[Tt]est\.java$|[Tt]est\w+\.java$', filename))
+    return \
+    bool(re.search(r'test/|tests/|src/test/|src/tests/', filename)) or \
+    bool(re.search(r'.*[Tt]est\.java$|^[Tt]est\w+\.java$', filename))
 
 def is_prod_file(filename):
     return bool(re.search(r'/src/|/main/|/lib/', filename))

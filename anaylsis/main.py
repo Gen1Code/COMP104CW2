@@ -4,10 +4,7 @@ import os
 import matplotlib.pyplot as plt
 
 from utils import to_commit_df, classify_commits
-
-
 pd.set_option('display.max_columns', None)
-
 
 data = []
 #Load all mined repos into dataframes
@@ -19,6 +16,7 @@ for file in os.listdir("data"):
     data.append(df)
     print(file+" total commits loaded:", len(df))
 
+#Classify commits in each repo
 for i, df in enumerate(data):
     test_counts, code_counts, unknown_java_counts, commit_types = classify_commits(df)
 
@@ -37,6 +35,8 @@ for i, df in enumerate(data):
 for i, df in enumerate(data):
     df_main = df[(df["on_main"]) & (~df["is_merge"]) & (df["commit_type"] != "none")]
     repo_name = df_main['repo'].iloc[0]
+
+    #Plot commit type distribution
     counts = df_main["commit_type"].value_counts()
     plt.figure()
     counts.plot(kind="bar")
@@ -46,8 +46,8 @@ for i, df in enumerate(data):
     plt.savefig(f"anaylsis/plots/{repo_name}_commit_types_bar.png")
     plt.close()
 
+    #Plot commit types over time
     by_year = df_main.groupby(["year", "commit_type"]).size().unstack(fill_value=0)
-
     plt.figure()
     bottom = None
     for col in by_year.columns:
@@ -65,8 +65,8 @@ for i, df in enumerate(data):
     plt.savefig(f"anaylsis/plots/{repo_name}_commit_types_per_year.png")
     plt.close()
 
+    #Plot commit size distribution
     sizes = df_main["num_lines_changed"].dropna()
-
     plt.figure()
     plt.hist(sizes, bins=60)
     plt.xlabel("lines changed per commit")
@@ -79,3 +79,4 @@ for i, df in enumerate(data):
     print(f"{repo_name} commit size stats:")
     print("median lines changed:", float(sizes.median()) if len(sizes) else None)
     print("95th percentile:", float(sizes.quantile(0.95)) if len(sizes) else None)
+
