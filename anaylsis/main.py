@@ -75,6 +75,7 @@ for i, df in enumerate(data):
     plt.xlabel("TDD type")
     plt.ylabel("count")
     plt.title(f"{repo_name}: TDD adoption types")
+    plt.tight_layout()
     plt.savefig(f"anaylsis/plots/{repo_name}_tdd_adoption_types.png")
     plt.close()
 
