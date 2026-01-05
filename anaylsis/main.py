@@ -1,9 +1,10 @@
 import pandas as pd
 import json
 import os
+import random
 import matplotlib.pyplot as plt
 
-from utils import to_commit_df, classify_commits, create_commit_graph, analyze_commit_graph
+from utils import to_commit_df, classify_commits, create_commit_graph, analyze_commit_graph, tdd_adoption_anaylsis
 pd.set_option('display.max_columns', None)
 
 data = []
@@ -37,8 +38,47 @@ for i, df in enumerate(data):
 
     print(f"Non merge commits on main branch:", len(df_main))
     print(df_main["commit_type"].value_counts().to_string())
-    print()
+    
+    #TDD Adoption Anaylsis
+    linked_files, num_files = tdd_adoption_anaylsis(df, G)
+    for linked in linked_files:
+        if linked["delta_commits"] == 0:
+            linked["tdd_type"] = "same commit"
+        elif linked["test_timestamp"] < linked["timestamp"]:
+            linked["tdd_type"] = "test first"
+        else:
+            linked["tdd_type"] = "test after"
+    tdd_types = pd.Series([item["tdd_type"] for item in linked_files]).value_counts()
+    
+    print(f"Number of production files: {num_files}")
+    print(f"Number of linked test-production files found: {len(linked_files)}")
+    print(f"TDD adoption types for {repo_name}:")
+    print(tdd_types.to_string())
 
+    print(f"Sample linked files for {repo_name}:")
+    for linked in random.sample(linked_files, min(4, len(linked_files))):
+        print(linked)
+
+    #Plot graph of delta commits for TDD adoption
+    delta_counts = pd.Series([item["delta_commits"] for item in linked_files]).value_counts().sort_index()
+    plt.figure()
+    delta_counts.plot(kind="bar")
+    plt.xlabel("delta commits between prod and test file")
+    plt.ylabel("count")
+    plt.title(f"{repo_name}: TDD adoption delta commits")
+    plt.savefig(f"anaylsis/plots/{repo_name}_tdd_adoption_delta_commits.png")
+    plt.close()
+
+    #Plot testfirst vs same vs test after uses timestamps
+    plt.figure()
+    tdd_types.plot(kind="bar")
+    plt.xlabel("TDD type")
+    plt.ylabel("count")
+    plt.title(f"{repo_name}: TDD adoption types")
+    plt.savefig(f"anaylsis/plots/{repo_name}_tdd_adoption_types.png")
+    plt.close()
+
+    print()
 
 #Plot bar charts of commit types for each repo
 for i, df in enumerate(data):

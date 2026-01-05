@@ -8,7 +8,14 @@ def is_test_file(filename):
     bool(re.search(r'.*[Tt]est\.java$|^[Tt]est\w+\.java$', filename))
 
 def is_prod_file(filename):
-    return bool(re.search(r'src/|main/|lib/', filename))
+    return bool(re.search(r'src/|main/|lib/', filename)) and not is_test_file(filename)
+
+def is_matching_testfile(file_path, candidate):
+    patterns = [
+        rf'[Tt]est{re.escape(file_path)}',           
+        rf'{re.escape(file_path.replace('.java', ''))}[Tt]est\.java'     
+    ]    
+    return any(re.search(pattern, candidate) for pattern in patterns)
 
 def to_commit_df(repo_json):
     repo_name = repo_json.get("name", "unknown")
@@ -101,6 +108,7 @@ def create_commit_graph(df):
             "is_merge": row.is_merge,
             "branches": row.branches,
             "on_main": main_branch in row.branches,
+            "modified_files": row.modified_files
         })
     
     for row in df.itertuples():
@@ -118,3 +126,64 @@ def analyze_commit_graph(G):
     
     return stats
 
+def tdd_adoption_anaylsis(df, G):
+    results = []
+    files_modified = set()
+
+    df = df.sort_values('timestamp').reset_index(drop=True)
+    for commit in df.itertuples():
+        for file in commit.modified_files:
+            if file["new_path"] and file["new_path"] not in files_modified and is_prod_file(file["new_path"]):
+                prod_filename = file["filename"]
+                files_modified.add(file["new_path"])
+            
+                test_file_found = False
+                for other_file in commit.modified_files:
+                    if other_file["new_path"] and is_test_file(other_file["new_path"]) and is_matching_testfile(prod_filename, other_file["filename"]):                        
+                        test_file_found = True
+                        results.append({
+                            "commit_hash": commit.hash,
+                            "prod_file": file["new_path"],
+                            "test_file": other_file["new_path"],
+                            "timestamp": commit.timestamp,
+                            "merge_commit": False,
+                            "delta_commits": 0
+                        })
+                        break
+                    
+                
+                if not test_file_found:
+                    #Search 30 commit using BFS
+                    visited = set()
+                    queue = [(commit.hash, 0)]  #(hash, depth)
+                    while queue and not test_file_found:
+                        current_hash, depth = queue.pop(0)
+                        if depth >= 30:
+                            continue
+                        
+                        for neighbour in G.successors(current_hash):
+                            if neighbour not in visited:
+                                visited.add(neighbour)
+                                neighbour_data = G.nodes[neighbour]
+                                
+                                #Check modified files in neighbour commit
+                                for other_file in neighbour_data.get("modified_files", []):
+                                    if other_file["new_path"] and is_test_file(other_file["new_path"]) and is_matching_testfile(prod_filename, other_file["filename"]):
+                                        results.append({
+                                            "test_commit_hash": neighbour,
+                                            "commit_hash": commit.hash,
+                                            "prod_file": file["new_path"],
+                                            "test_file": other_file["new_path"],
+                                            "timestamp": commit.timestamp,
+                                            "test_timestamp": neighbour_data.get("timestamp"),
+                                            "merge_commit": neighbour_data.get("is_merge", False),
+                                            "delta_commits": depth + 1
+                                        })
+                                        test_file_found = True
+                                        break
+                                
+                                if test_file_found:
+                                    break
+                                queue.append((neighbour, depth + 1))
+    
+    return results, len(files_modified)
